@@ -30,11 +30,11 @@ class Auth:
         soup = BeautifulSoup(response_text, "html.parser")
         error_box_filler = soup.find(id="error_box_filler")
         error_box_login = soup.find(id="error_box_login")
-        (
-            message.success("Login successful")
-            if not error_box_filler and not error_box_login
-            else message.error("Login failed")
-        )
+        if error_box_filler and error_box_login:
+            message.error("Login failed")
+            exit(1)
+        
+        message.success("Login successful")    
         return error_box_filler is not None or error_box_login is not None
 
     def login(self, username: str, password: str) -> bool:
