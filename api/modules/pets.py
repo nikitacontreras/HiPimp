@@ -16,6 +16,70 @@ class Pets:
             instance = Pet(pet)
             self.__petList.append(instance)
 
+    def addToWishlist(self, pet: Pet):
+        message.info(f"Adding {pet.display_name} to wishlist")
+        res = self.__req.request(
+            method="POST",
+            url="https://hi5.com/api/?application_id=user&format=JSON",
+            data={
+                "method": "tagged.apps.pets.addToList",
+                "uid_to_add": pet.user_id,
+                "type_of_list": "wish",
+            },
+        )
+        if res.json()["stat"] == "ok":
+            message.success(f"{pet.display_name} added to wishlist")
+            return True
+
+        message.error(
+            f"Failed to add {pet.display_name} to wishlist: {res.json()["error"]["message"]}"
+        )
+        
+    def removeFromWishlist(self, pet: Pet):
+        message.info(f"Removing {pet.display_name} from wishlist")
+        res = self.__req.request(
+            method="POST",
+            url="https://hi5.com/api/?application_id=user&format=JSON",
+            data={
+                "method": "tagged.apps.pets.removeFromList",
+                "uid_to_remove": pet.user_id,
+                "type_of_list": "wish",
+            },
+        )
+        if res.json()["stat"] == "ok":
+            message.success(f"{pet.display_name} removed from wishlist")
+            return True
+
+        message.error(
+            f"Failed to remove {pet.display_name} from wishlist: {res.json()["error"]["message"]}"
+        )
+
+    def addAsFriend(self, pet: Pet):
+        message.info(f"Adding {pet.display_name} as friend")
+        res = self.__req.request(
+            method="POST",
+            url="https://secure.hi5.com/api/?application_id=user&format=JSON",
+            data={
+                "method": "tagged.usermgmt.addFriend",
+                "uid_to_add": pet.user_id,
+            },
+        )
+        if res.json()["stat"] == "ok":
+            message.success(f"{pet.display_name} added as friend")
+            return True
+
+        if res.json()["stat"] == "fail":
+            errorCode = res.json()["error"]["code"]
+            match errorCode:
+                case 105:
+                    message.error(f"Friend request already sent to {pet.display_name}")
+                    return False
+                
+        message.error(
+            f"Failed to add {pet.display_name} as friend: {res.json()["error"]["message"]}"
+        )
+        return False
+    
     def list(self, page: int = 0, rows: int = 20):
         message.info(f"Getting pets list page {page} with {rows} rows")
         res = self.__req.request(
@@ -108,7 +172,9 @@ class Pets:
                         owner_id=new_owner,
                     )
                 case 108:
-                    message.error(f"User has reached pet limit, skipping {pet.display_name}")
+                    message.error(
+                        f"User has reached pet limit, skipping {pet.display_name}"
+                    )
                     time.sleep(5)
                     return False
                 case 122:
@@ -124,7 +190,9 @@ class Pets:
 
     def batch_buy(self):
         for pet in self.__petList:
-            self.buy(pet)
+            if (self.buy(pet) == True):
+                self.addToWishlist(pet)
+            # self.addAsFriend(pet)
             self.__petList.remove(pet)
 
     # def auto_buy(self, page: int = 0, rows: int = 20):
